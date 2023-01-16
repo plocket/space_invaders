@@ -1,0 +1,46 @@
+
+body {
+  margin: 0;
+}
+
+#screen_border {
+  padding-top: 5px;
+  margin: 0 auto;
+  width: 820px;
+  height: 405px;
+  background: gray;
+}
+
+#screen {
+  position: relative;
+  margin: 0 auto;
+  width: 810px;
+  height: 400px;
+  background: rgba( 20, 20, 20, 1 );
+}
+
+#player {
+  position: absolute;
+  bottom: 0;
+  width: 50px;
+  height: 10px;
+  background: green;
+}
+
+.descender_big {
+  background: purple;
+  width: 30px;
+  height: 10px;
+}
+
+.descender_medium {
+  background: orange;
+  width: 25px;
+  height: 10px;
+}
+
+.descender_small {
+  background: yellow;
+  width: 20px;
+  height: 10px;
+}
