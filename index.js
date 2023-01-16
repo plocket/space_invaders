@@ -22,9 +22,10 @@ const get_position = function ( obj ) {
     right: obj.node.offsetLeft + obj.node.offsetWidth,
     top: obj.node.offsetTop,
     bottom: obj.node.offsetTop + obj.node.offsetHeight,
+    center_x: obj.node.offsetLeft + (obj.node.offsetWidth/2),
+    // Probably don't need these dimensions
     width: obj.node.offsetWidth,
     height: obj.node.offsetHeight,
-    center_x: obj.node.offsetLeft + (obj.node.offsetWidth/2),
   }
 };  // Ends get_position()
 
@@ -37,6 +38,10 @@ const get_position = function ( obj ) {
 
 class Screen {
   constructor ( selector ) {
+    /** A box containing other game entities.
+    * 
+    * @params {str} selector HTML selector of the pre-existing screen's node
+    */
     this.node = document.body.querySelector( selector );
     // These will always be the same
     this.left = 0;
@@ -49,8 +54,17 @@ class Screen {
 
 
 class Mover {
-  constructor ( selector, screen ) {
-    this.node = document.body.querySelector( selector );
+  constructor ( classNames, screen ) {
+    /** An object that can move in the screen.
+    * 
+    * @param {str} classNames Names of classes to give the new mover
+    * @param {Screen} screen Instance of Screen that contains this player
+    */
+    this.node = document.createElement( `div` );
+    this.node.className = classNames;
+
+    screen.node.appendChild( this.node );
+
     this.disable_left = false;
     this.disable_right = false;
     this.distance = 20;
@@ -62,7 +76,6 @@ class Mover {
 
     // If the mover hasn't hit the left edge of the screen
     if ( !this.disable_left ) {
-
       // Move the mover left once using their distance
       let this_pos = get_position( this );
       this.node.style.left = `${ this_pos.left - this.distance }px`;
@@ -81,7 +94,6 @@ class Mover {
 
     // If the mover hasn't hit the right edge of the screen
     if ( !this.disable_right ) {
-
       // Move the mover right once using their distance
       let this_pos = get_position( this );
       this.node.style.left = `${ this_pos.left + this.distance }px`;
@@ -134,8 +146,13 @@ class Mover {
 
 
 class Player extends Mover {
-  constructor ( selector, screen ) {
-    super( selector, screen )
+  constructor ( screen ) {
+    /** A player-controlled avatar.
+    * 
+    * @param {Screen} screen Instance of Screen that contains the player
+    */
+    super( `player`, screen )
+
     this.place_center();
 
     let player = this;
@@ -152,12 +169,14 @@ class Player extends Mover {
     /** Put the player avatar in the center of the screen */
     let pos = get_position( this );
     this.node.style.left = `${ this.screen.center_x - (pos.width/2) }px`;
+    this.node.style.bottom = 0;
   }  // Ends player.place_center()
 
 };  // Ends Player{}
 
 
 
-let screen = new Screen( `#screen` );
-let player = new Player( `#player`, screen );
+let screen = new Screen( `.screen` );
+let player = new Player( screen );
+let descender = new Descender( screen );
 
