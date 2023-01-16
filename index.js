@@ -53,36 +53,6 @@ class Screen {
 };  // Ends Screen{}
 
 
-class Player extends Mover {
-  constructor ( screen ) {
-    /** A player-controlled avatar.
-    * 
-    * @param {Screen} screen Instance of Screen that contains the player
-    */
-    super( `player`, screen )
-
-    this.place_center();
-
-    let player = this;
-    document.addEventListener( 'keydown', function ( event, target ) {
-      if ( event.keyCode === 37 ) {
-        player.move_left();
-      } else if ( event.keyCode === 39 ) {
-        player.move_right();
-      }
-    });
-  }  // Ends player.constructor()
-
-  place_center () {
-    /** Put the player avatar in the center of the screen */
-    let pos = get_position( this );
-    this.node.style.left = `${ this.screen.center_x - (pos.width/2) }px`;
-    this.node.style.bottom = 0;
-  }  // Ends player.place_center()
-
-};  // Ends Player{}
-
-
 class Mover {
   constructor ( classNames, screen ) {
     /** An object that can move in the screen.
@@ -173,6 +143,43 @@ class Mover {
   }  // Ends mover.hits_screen_right()
 
 };  // Ends Mover{}
+
+
+class Player extends Mover {
+  constructor ( screen ) {
+    /** A player-controlled avatar.
+    * 
+    * @param {Screen} screen Instance of Screen that contains the player
+    */
+    super( `player`, screen )
+
+    this.place_center();
+
+    let player = this;
+    document.addEventListener( 'keydown', function ( event, target ) {
+      if ( event.keyCode === 37 ) {
+        player.move_left();
+      } else if ( event.keyCode === 39 ) {
+        player.move_right();
+      }
+    });
+  }  // Ends player.constructor()
+
+  place_center () {
+    /** Put the player avatar in the center of the screen */
+    let pos = get_position( this );
+    this.node.style.left = `${ this.screen.center_x - (pos.width/2) }px`;
+    this.node.style.bottom = 0;
+  }  // Ends player.place_center()
+
+};  // Ends Player{}
+
+
+class Descender {
+  constructor( screen ) {
+    
+  }
+}
 
 
 
