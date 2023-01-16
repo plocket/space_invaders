@@ -28,50 +28,6 @@ const get_position = function ( obj ) {
   }
 };  // Ends get_position()
 
-const hits_screen_left = function ( obj, screen ) {
-  /** Return whether or not the object's node hits the left side of the screen.
-  * 
-  * @param {object} obj Game object.
-  * @param {HTML Node} obj.node HTML Node belonging to the game object.
-  * @param {object} screen An instance of Screen. Here for consistent signature.
-  * 
-  * @returns {bool} Whether the left side of the object hit the left side of the screen.
-  */
-
-  let obj_pos = get_position( obj );
-
-  // Uses the position of the object relative to its parent Screen.
-  if ( obj_pos.left <= 0 ) {
-    return true;
-  } else {
-    return false;
-  }
-
-}  // Ends hits_screen_left()
-
-
-const hits_screen_right = function ( obj, screen ) {
-  /** Return whether or not the object's node hits the right side of the screen.
-  * 
-  * @param {object} obj Game object.
-  * @param {HTML Node} obj.node HTML Node belonging to the game object.
-  * @param {object} screen A Screen instance.
-  * @param {float} screen.width The width of the screen.
-  * 
-  * @returns {bool} Whether the right side of the object hit the right side of the screen.
-  */
-
-  let obj_pos = get_position( obj );
-
-  // Uses the position of the object relative to its parent Screen.
-  if ( obj_pos.right >= screen.width ) {
-    return true;
-  } else {
-    return false;
-  }
-
-}  // Ends hits_screen_right()
-
 
 // =====================
 // =====================
@@ -92,14 +48,94 @@ class Screen {
 };  // Ends Screen{}
 
 
-class Player {
+class Mover {
   constructor ( selector, screen ) {
     this.node = document.body.querySelector( selector );
     this.disable_left = false;
     this.disable_right = false;
     this.distance = 20;
-
     this.screen = screen;
+  }  // Ends mover.constructor()
+
+  move_left () {
+    /** Move the mover left one distance unit if possible. */
+
+    // If the mover hasn't hit the left edge of the screen
+    if ( !this.disable_left ) {
+
+      // Move the mover left once using their distance
+      let this_pos = get_position( this );
+      this.node.style.left = `${ this_pos.left - this.distance }px`;
+
+      if ( this.hits_screen_left( this, this.screen ) ) {
+        this.disable_left = true;
+      }
+    }  // ends if disable_left
+
+    // Make sure mover can now move right again
+    this.disable_right = false;
+  }  // Ends mover.move_left()
+
+  move_right () {
+    /** Move the mover right one distance unit if possible. */
+
+    // If the mover hasn't hit the right edge of the screen
+    if ( !this.disable_right ) {
+
+      // Move the mover right once using their distance
+      let this_pos = get_position( this );
+      this.node.style.left = `${ this_pos.left + this.distance }px`;
+
+      if ( this.hits_screen_right( this, this.screen ) ) {
+        this.disable_right = true;
+      }
+    }  // ends if disable_right
+
+    // Make sure mover can now move left again
+    this.disable_left = false;
+
+  }  // Ends mover.move_right()
+
+
+  hits_screen_left () {
+    /** Return whether or not the mover's node hits the left side of the screen.
+    * 
+    * @returns {bool} Whether the left side of the mover hit the left side of the screen.
+    */
+
+    let obj_pos = get_position( this );
+
+    // Uses the position of the mover relative to its parent Screen.
+    if ( obj_pos.left <= 0 ) {
+      return true;
+    } else {
+      return false;
+    }
+  }  // Ends mover.hits_screen_left()
+
+
+  hits_screen_right () {
+    /** Return whether or not the mover's node hits the right side of the screen.
+    * 
+    * @returns {bool} Whether the right side of the mover hit the right side of the screen.
+    */
+
+    let obj_pos = get_position( this );
+
+    // Uses the position of the mover relative to its parent Screen.
+    if ( obj_pos.right >= this.screen.right ) {
+      return true;
+    } else {
+      return false;
+    }
+  }  // Ends mover.hits_screen_right()
+
+}
+
+
+class Player extends Mover {
+  constructor ( selector, screen ) {
+    super( selector, screen )
     this.place_center();
 
     let player = this;
@@ -117,48 +153,6 @@ class Player {
     let pos = get_position( this );
     this.node.style.left = `${ this.screen.center_x - (pos.width/2) }px`;
   }  // Ends player.place_center()
-
-  move_left () {
-    /** Move the player left one distance unit if possible. */
-
-    // If the player hasn't hit the left edge of the screen
-    if ( !this.disable_left ) {
-
-      // Move the player left once using their distance
-      let this_pos = get_position( this );
-      this.node.style.left = `${ this_pos.left - this.distance }px`;
-
-      if ( hits_screen_left( this, this.screen ) ) {
-        this.disable_left = true;
-      }
-
-    }
-
-    // Make sure player can now move right again
-    this.disable_right = false;
-
-  }  // Ends player.move_left()
-
-  move_right () {
-    /** Move the player right one distance unit if possible. */
-
-    // If the player hasn't hit the right edge of the screen
-    if ( !this.disable_right ) {
-
-      // Move the player right once using their distance
-      let this_pos = get_position( this );
-      this.node.style.left = `${ this_pos.left + this.distance }px`;
-
-      if ( hits_screen_right( this, this.screen ) ) {
-        this.disable_right = true;
-      }
-
-    }
-
-    // Make sure player can now move left again
-    this.disable_left = false;
-
-  }  // Ends player.move_right()
 
 };  // Ends Player{}
 
