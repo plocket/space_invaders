@@ -55,3 +55,13 @@ body {
   width: 20px;
   height: 30px;
 }
+
+.outcome {
+  display: none;
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, 0);
+  font-size: 5em;
+  color: white;
+  font-family: Verdana, sans-serif;
+}

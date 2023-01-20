@@ -276,9 +276,9 @@ class Descenders {
       // After all the descenders have moved,
       // if at least one of them hit a wall
       if ( did_hit_wall ) {
-        // All should pause in the opposite direction
+        // All should move in the opposite direction
         this.x_vector *= -1;
-        // All shouold move down
+        // All should move down
         for ( let row of this.rows ) {
           for ( let descender of row.descenders ) {
             // Move down
@@ -292,6 +292,13 @@ class Descenders {
               } else {
                 this.game.player_status = `lost`;
               }
+
+              // Don't like this being burried here
+              let status_node = this.game.outcome.querySelector(`.status`);
+              // Don't love using the status as the literal text
+              status_node.innerText = this.game.player_status;
+              this.game.outcome.style.display = `block`;
+
             }  // ends if hits floor
 
           }  // ends for each descender in row
@@ -308,6 +315,7 @@ class Descenders {
     }  // ends if not all_stop
 
   }  // Ends Descenders.move_all()
+
 }  // Ends Descenders{}
 
 
@@ -330,7 +338,7 @@ class DescenderRow {
     this.x_vector = -1;
 
     // Keep everything in multiples of 2? With Math.
-    let num_cols = 10;  // Could pass this in instead.
+    let num_cols = 10;  // Could pass this as an argument instead.
     let column_width = 50;
     let row_width = num_cols * column_width;
 
@@ -379,6 +387,10 @@ class Descender extends Mover {
     // Vertical direction and distance whenever it moves
     this.y_vector = 1;
     this.y_distance = 10;
+
+    // // For testing - speed up to get to end
+    // this.x_distance = 50;
+    // this.y_distance = 50;
   }  // end descender.constructor()
 
   hits_parent_floor () {
@@ -423,6 +435,7 @@ const pause = function( event ){
 let game = {
   pause: true,
   player_status: `playing`,
+  outcome: document.querySelector(`.outcome`),
 }
 
 // Place the pieces and start the game
