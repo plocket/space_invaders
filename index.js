@@ -66,24 +66,26 @@ class Mover {
     * @param {HTML Node} parent Instance of parent that contains this player
     */
     this.node = document.createElement( `div` );
+    this.node.className = classNames;
 
     parent.node.appendChild( this.node );
-
-    this.left_disabled = false;
-    this.right_disabled = false;
     this.parent = parent;
   }  // Ends mover.constructor()
 
   move_x () {
     /** Move in the given direction. -1 moves left, 1 moves right. */
-    let this_pos = get_position( this );
-    this.node.style.left = `${ this_pos.left + (this.x_distance * this.x_vector) }px`;
+    if ( !this.game.pause ) {
+      let this_pos = get_position( this );
+      this.node.style.left = `${ this_pos.left + (this.x_distance * this.x_vector) }px`;
+    }
   }
 
   move_y () {
     /** Move in the given direction. -1 moves up, 1 moves down. */
-    let this_pos = get_position( this );
-    this.node.style.top = `${ this_pos.top + (this.y_distance * this.y_vector) }px`;
+    if ( !this.game.pause ) {
+      let this_pos = get_position( this );
+      this.node.style.top = `${ this_pos.top + (this.y_distance * this.y_vector) }px`;
+    }
   }
 
   hits_parent_left () {
@@ -121,15 +123,26 @@ class Mover {
 
 
 class Player extends Mover {
-  constructor ( parent ) {
-    /** A player-controlled avatar that can move left and right and fire a "bullet".
-    * 
+  /** A player-controlled avatar that can move left and right and fire a "bullet". */
+  constructor ( game, parent ) {
+    /**
     * @param {HTML Node} parent Instance of parent that contains the player
+    * @param {obj} game Game state. Messy to have in here? Helps later fun?
+    * @paream {bool} game.pause Whether to allow progress or not.
     */
-    super( `player`, parent )
+    super( `player`, parent );
+    this.game = game;  // TODO: Pass this into super?
 
     this.place_center();
-    
+
+    // Whether the parent can move left and right
+    this.left_disabled = false;
+    this.right_disabled = false;
+    // Distance divides exactly in parent so the avatar stops right
+    // at the wall of the parent.
+    // This feels a bit big, leaving gaps, but allows the speed of
+    // travel I desire considering we don't have control of the rate
+    // of the loop movement because we're using the `keydown` event.
     this.x_distance = 20;
 
     let player = this;
@@ -137,58 +150,57 @@ class Player extends Mover {
     document.addEventListener( 'keydown', function ( event, target ) {
       if ( event.keyCode === 37 ) {
         player.move_left();
-        if ( player.hits_parent_left() ) {
-          player.left_disabled = true;
-        }
       } else if ( event.keyCode === 39 ) {
         player.move_right();
-        if ( player.hits_parent_right() ) {
-          player.right_disabled = true;
-        }
       }
     });
   }  // Ends player.constructor()
 
   place_center () {
-    /** Put the player avatar in the center of the parent */
+    /** Put the object avatar in the horizontal center of the parent. */
     let pos = get_position( this );
     this.node.style.left = `${ this.parent.center_x - (pos.width/2) }px`;
     this.node.style.bottom = 0;
   }  // Ends player.place_center()
 
   move_left () {
-    /** Move the player left one distance unit if possible. */
+    /** Move the player left once using their distance and direction. */
 
     // If the player hasn't hit the left edge of the parent
     if ( !this.left_disabled ) {
-      // Move the player left once using their distance
       this.x_vector = -1;
       this.move_x();
 
+      // If the player has _now_ hit the edge of the parent
       if ( this.hits_parent_left( this, this.parent ) ) {
+        // Don't allow further movement in this direction
         this.left_disabled = true;
       }
-    }  // ends if left_disabled
+    }  // ends if not left_disabled
 
     // Make sure player can now move right again
+    // TODO: Watch out this doesn't get enabled when pausing game, allowing
+    // the player to move right after pausing.
     this.right_disabled = false;
   }  // Ends player.move_left()
 
   move_right () {
-    /** Move the player right one distance unit if possible. */
+    /** Move the player right once using their distance and direction. */
 
     // If the player hasn't hit the right edge of the parent
     if ( !this.right_disabled ) {
-      // Move the player right once using their distance
       this.x_vector = 1;
       this.move_x();
 
+      // If the player has _now_ hit the edge of the parent
       if ( this.hits_parent_right() ) {
+        // Don't allow further movement in this direction
         this.right_disabled = true;
       }
-    }  // ends if right_disabled
+    }  // ends if not right_disabled
 
     // Make sure player can now move left again
+    // TODO: Watch out this doesn't get enabled when pausing game
     this.left_disabled = false;
 
   }  // Ends player.move_right()
@@ -198,38 +210,47 @@ class Player extends Mover {
 
 class Descenders {
   /** Descender manager. Handles movement loop and game end, though
-  * game end handling seems to broad to happen deep in here... */
+  * game end handling seems too important to the full game to bury deep in here...
+  * 
+  * Handle movement in here because the whole group moves as a unit.
+  */
 
-  constructor ( game, parent ) {
+  constructor ( game ) {
+    /**
+    * @param {obj} game Game state. Messy to have in here? Helps later fun?
+    * @param {str} game.player_status Whether the player has won/lost/etc.
+    * @paream {bool} game.pause Whether to allow progress or not.
+    */
     // Just use global `game`?
     this.game = game;
     this.x_vector = -1
 
     // Make all children
     this.rows = [
-      new Row( descent_space, `small`, 1 ),
-      new Row( descent_space, `medium`, 2 ),
-      new Row( descent_space, `medium`, 3 ),
-      new Row( descent_space, `big`, 4 ),
-      new Row( descent_space, `big`, 5 ),
+      new DescenderRow( game, descent_space, `small`, 1 ),
+      new DescenderRow( game, descent_space, `medium`, 2 ),
+      new DescenderRow( game, descent_space, `medium`, 3 ),
+      new DescenderRow( game, descent_space, `big`, 4 ),
+      new DescenderRow( game, descent_space, `big`, 5 ),
     ];
 
     // Start moving
     this.hit_floor = false;
 
-    // Start the descent loop
-    this.wait = 2 * 1000;
+    // Start the descent loop. Between each loop of movement, wait a bit.
+    this.wait = 1 * 1000;
     setTimeout(this.move_all.bind(this), this.wait );
 
   }
 
   move_all () {
-    /** Move all descenders. */
+    /** Move all descenders. Recursive. */
 
     // If we moved one descender every "frame", they would naturally speed up,
     // but right now we're moving them all at once. Either figure out frames
     // or do the Math.
-    let all_stop = this.game.player_status === `won` || this.game.player_status === `lost`;
+    let all_stop = this.game.player_status === `won`
+      || this.game.player_status === `lost`;
     if ( !all_stop ) {
 
       let did_hit_wall = false;
@@ -242,6 +263,7 @@ class Descenders {
           // Hmm, this is getting a bit messy just for potential future fun...
           descender.x_vector = this.x_vector;
           descender.move_x();
+          // Prepare to change direction
           if ( descender.hits_parent_left() ) {
             did_hit_wall = true;
           }
@@ -254,7 +276,7 @@ class Descenders {
       // After all the descenders have moved,
       // if at least one of them hit a wall
       if ( did_hit_wall ) {
-        // All should go in the opposite direction
+        // All should pause in the opposite direction
         this.x_vector *= -1;
         // All shouold move down
         for ( let row of this.rows ) {
@@ -263,7 +285,7 @@ class Descenders {
             descender.y_vector = 1;
             descender.move_y();
 
-            // Check if they any hit the ground
+            // Check if they any hit the ground yet
             if ( descender.hits_parent_floor() ) {
               if ( descender_count === 50 ) {
                 this.game.player_status = `won`;
@@ -272,9 +294,9 @@ class Descenders {
               }
             }  // ends if hits floor
 
-          }  // end for each descender in row
-        }  // end for each row
-      }
+          }  // ends for each descender in row
+        }  // ends for each row
+      }  // ends if did_hit_wall
 
       // Enemies move faster the fewer there are
       // Maximum speed (6ms) still allows the user to catch up if they
@@ -289,19 +311,31 @@ class Descenders {
 }  // Ends Descenders{}
 
 
-class Row {
-  constructor ( parent, type, row_num ) {
+class DescenderRow {
+  /** A visual row of descenders. Handles their initial placement and contains them.
+  *    TODO: Explore putting this functionality elsewhere. This may
+  *    be a spurious class.
+  */
+  constructor ( game, parent, type, row_num ) {
+    /**
+    * @param {obj} parent The object containing this row.
+    * @param {HTML Node} parent.node HTML node of the parent object.
+    * @param {number} parent.right
+    * @param {number} parent.left
+    * @param {str} type At the moment, the size of the row's descenders.
+    * @param {int} row_num The vertical position of the row relative to other rows.
+    *   Top is 1.
+    */
+    // Start moving horizontally in this direction
     this.x_vector = -1;
 
     // Keep everything in multiples of 2? With Math.
-    let num_cols = 10;
-    // num_cols = 1;
+    let num_cols = 10;  // Could pass this in instead.
     let column_width = 50;
     let row_width = num_cols * column_width;
 
-    // Put each descender in the middle of its column
-    // Keep start side_padding to give room for movement. Make
-    // this more dynamic in future?
+    // Put each descender in the middle of its column. Include side_padding
+    // to give room for horizontal movement. More dynamic in future?
     let side_padding = (parent.right - row_width)/2;
     let start = parent.right - row_width - side_padding;
     let curr_col_middle = start + (column_width/2);
@@ -309,7 +343,7 @@ class Row {
     this.descenders = [];
     for ( let des_i = 0; des_i < num_cols; des_i++ ) {
 
-      let descender = new Descender( parent, type, this );
+      let descender = new Descender( game, parent, type, this );
       this.descenders.push( descender );
       let pos = get_position( descender );
       // Descender's appearance is in the middle of the column
@@ -321,20 +355,28 @@ class Row {
     }  // ends place descenders
 
   }  // ends row.constructor()
-}  // Ends Row{}
+}  // Ends DescenderRow{}
 
 
 class Descender extends Mover {
-  constructor( parent, type, row ) {
+  constructor( game, parent, type ) {
     /**
-    * 
-    * @param {str} placement 'top', 'middle', or 'bottom'
+    * @param {obj} parent The object containing this row.
+    * @param {HTML Node} parent.node HTML node of the parent object.
+    * @param {number} parent.right
+    * @param {number} parent.left
+    * @param {str} type At the moment, the size of the row's descenders.
+    * @param {str} type 'top', 'middle', or 'bottom'
     */
     super( `descender ${ type }`, parent );
-    this.row = row;
+    this.game = game;  // TODO: Pass this into super?
 
+    // Travel direction and distance in here to allow messing around in future.
+    // Maybe not worth the maintanance cost.
+
+    // Horizontal distance whenever it moves
     this.x_distance = 2;
-
+    // Vertical direction and distance whenever it moves
     this.y_vector = 1;
     this.y_distance = 10;
   }  // end descender.constructor()
@@ -358,14 +400,16 @@ class Descender extends Mover {
 }  // Ends Descender{}
 
 
-
+// Game state
 let game = {
+  pause: true,
   player_status: 'playing',
 }
 
-
+// Place the pieces and start the game
 let screen = new Container( `.screen` );
-let player = new Player( screen );
+let player = new Player( game, screen );
 let descent_space = new Container( `.descent_space` );
 let descenders = new Descenders( game, descent_space );
+game.pause = false;
 
