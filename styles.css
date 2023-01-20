@@ -26,20 +26,32 @@ body {
   background: green;
 }
 
-.descender_big {
+.descent_space {
+  position: relative;
+  width: 600px;
+  height: 100%;
+  margin: 0 auto;
+  background: gray;
+}
+
+.descender {
+  position: absolute;
+}
+
+.descender.big {
   background: purple;
   width: 30px;
-  height: 10px;
+  height: 30px;
 }
 
-.descender_medium {
+.descender.medium {
   background: orange;
   width: 25px;
-  height: 10px;
+  height: 30px;
 }
 
-.descender_small {
+.descender.small {
   background: yellow;
   width: 20px;
-  height: 10px;
+  height: 30px;
 }
