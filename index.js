@@ -147,7 +147,7 @@ class Player extends Mover {
 
     let player = this;
     // `keydown` fires repeatedly, but the repeat is a bit slow for what I'd like
-    document.addEventListener( 'keydown', function ( event, target ) {
+    document.addEventListener( `keydown`, function ( event, target ) {
       if ( event.keyCode === 37 ) {
         player.move_left();
       } else if ( event.keyCode === 39 ) {
@@ -400,10 +400,29 @@ class Descender extends Mover {
 }  // Ends Descender{}
 
 
+const pause = function( event ){
+/** Pause the game. It drives me crazy when I can't pause a game, even
+*   though I know the loop is still running. */
+
+  // The escape key pauses the game
+  if ( event.keyCode === 27 ) {
+    if ( game.pause === true ) {
+      game.pause = false;
+    } else {
+      game.pause = true;
+    }
+  }
+};  // Ends pause()
+
+
+// ===========================================
+// ===========================================
+// ===========================================
+
 // Game state
 let game = {
   pause: true,
-  player_status: 'playing',
+  player_status: `playing`,
 }
 
 // Place the pieces and start the game
@@ -412,4 +431,6 @@ let player = new Player( game, screen );
 let descent_space = new Container( `.descent_space` );
 let descenders = new Descenders( game, descent_space );
 game.pause = false;
+
+document.body.addEventListener( `keydown`, pause );
 
