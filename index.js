@@ -2,7 +2,10 @@
 
 const get_position = function ( obj ) {
   /** Get the relative position and dimensions of an
-  *    object's `.node` as floats.
+  *   object's `.node` as floats.
+  * 
+  * There's something that feels better having it out here
+  *   as opposed to as a method of an instance.
   * 
   * @param {object} obj
   * @param {HTML Node} obj.node
@@ -14,7 +17,7 @@ const get_position = function ( obj ) {
   * @returns {float} pos.bottom The bottom position relative to the parent node. Left edge = 0.
   * @returns {float} pos.width The width of the node.
   * @returns {float} pos.height The height of the node.
-  * @returns {float} pos.center_x The width of half the node.
+  * @returns {float} pos.half_width The width of half the node.
   */
 
   return {
@@ -22,28 +25,67 @@ const get_position = function ( obj ) {
     right: obj.node.offsetLeft + obj.node.offsetWidth,
     top: obj.node.offsetTop,
     bottom: obj.node.offsetTop + obj.node.offsetHeight,
-    center_x: obj.node.offsetWidth/2,
+    // Q: These are currently unchanging, so do they really need to be in here?
+    half_width: obj.node.offsetWidth/2,
     width: obj.node.offsetWidth,
     height: obj.node.offsetHeight,
   }
 };  // Ends get_position()
 
-const do_collide = function ( obj1, obj2 ) {
+const have_collided = function ( obj1, obj2 ) {
   /** Returns true if two objects are colliding, false if no. */
   let pos1 = get_position( obj1 );
   let pos2 = get_position( obj2 );
-};  // Ends do_collide()
+
+  // TODO: Check for collision...
+};  // Ends have_collided()
 
 
 // =====================
 // =====================
 // Classes
+// Q: Classes or object primitives? Composition vs. inheritance?
 // =====================
 // =====================
 
+
+class Game {
+  /** Game state. Manages interactions for whole game and, maybe
+  *   between pieces of the game.
+  * 
+  * Not sure this needs to be a class right now, but
+  *   might be useful in future.
+  */
+  constructor () {
+    this.paused = false;
+    this.outcome_node = document.querySelector(`.outcome`);
+    // Storing this list in the Descenders instance and here seems wrong
+    this.descenders = null;
+    this.player = null;
+    // Should this be a prop of the Player instance?
+    this.player_status = `playing`;
+  }  // Ends game.constructor()
+
+  pause ( event ) {
+  /** Pause the game. It drives me crazy when I can't pause a game, even
+  *   though I know the loops are still running when it's paused. */
+
+    // The escape key pauses the game
+    if ( event.keyCode === 27 ) {
+      if ( this.paused === true ) {
+        this.paused = false;
+      } else {
+        this.paused = true;
+      }
+    }
+  }  // Ends game.pause()
+
+}  // Ends Game{}
+
+
 class Container {
   constructor ( selector ) {
-    /** A box containing other game entities.
+    /** An HTML node constraining the game entities that it contains.
     * 
     * @params {str} selector HTML selector of the pre-existing DOM node
     */
@@ -53,7 +95,7 @@ class Container {
     this.right = this.node.offsetWidth;
     this.top = 0;
     this.bottom = this.node.offsetHeight;
-    this.center_x = this.right/2;
+    this.half_width = this.right/2;
   }
 };  // Ends Container{}
 
@@ -74,7 +116,7 @@ class Mover {
 
   move_x () {
     /** Move in the given direction. -1 moves left, 1 moves right. */
-    if ( !this.game.pause ) {
+    if ( !this.game.paused ) {
       let this_pos = get_position( this );
       this.node.style.left = `${ this_pos.left + (this.x_distance * this.x_vector) }px`;
     }
@@ -82,7 +124,7 @@ class Mover {
 
   move_y () {
     /** Move in the given direction. -1 moves up, 1 moves down. */
-    if ( !this.game.pause ) {
+    if ( !this.game.paused ) {
       let this_pos = get_position( this );
       this.node.style.top = `${ this_pos.top + (this.y_distance * this.y_vector) }px`;
     }
@@ -102,7 +144,6 @@ class Mover {
       return false;
     }
   }  // Ends mover.hits_parent_left()
-
 
   hits_parent_right () {
     /** Return whether or not the mover's node hits the right side of the parent.
@@ -128,7 +169,7 @@ class Player extends Mover {
     /**
     * @param {HTML Node} parent Instance of parent that contains the player
     * @param {obj} game Game state. Messy to have in here? Helps later fun?
-    * @paream {bool} game.pause Whether to allow progress or not.
+    * @param {bool} game.paused Whether to allow progress or not. (TODO)
     */
     super( `player`, parent );
     this.game = game;  // TODO: Pass this into super?
@@ -159,7 +200,7 @@ class Player extends Mover {
   place_center () {
     /** Put the object avatar in the horizontal center of the parent. */
     let pos = get_position( this );
-    this.node.style.left = `${ this.parent.center_x - (pos.width/2) }px`;
+    this.node.style.left = `${ this.parent.half_width - (pos.width/2) }px`;
     this.node.style.bottom = 0;
   }  // Ends player.place_center()
 
@@ -219,7 +260,7 @@ class Descenders {
     /**
     * @param {obj} game Game state. Messy to have in here? Helps later fun?
     * @param {str} game.player_status Whether the player has won/lost/etc.
-    * @paream {bool} game.pause Whether to allow progress or not.
+    * @paream {bool} game.paused Whether to allow progress or not.
     */
     // Just use global `game`?
     this.game = game;
@@ -263,7 +304,8 @@ class Descenders {
           // Hmm, this is getting a bit messy just for potential future fun...
           descender.x_vector = this.x_vector;
           descender.move_x();
-          // Prepare to change direction
+
+          // Prepare to change direction if needed
           if ( descender.hits_parent_left() ) {
             did_hit_wall = true;
           }
@@ -276,7 +318,7 @@ class Descenders {
       // After all the descenders have moved,
       // if at least one of them hit a wall
       if ( did_hit_wall ) {
-        // All should move in the opposite direction
+        // All should move in the opposite direction in next loop
         this.x_vector *= -1;
         // All should move down
         for ( let row of this.rows ) {
@@ -293,11 +335,13 @@ class Descenders {
                 this.game.player_status = `lost`;
               }
 
+              this.game.pause();
+
               // Don't like this being burried here
-              let status_node = this.game.outcome.querySelector(`.status`);
+              let status_node = this.game.outcome_node.querySelector(`.status`);
               // Don't love using the status as the literal text
               status_node.innerText = this.game.player_status;
-              this.game.outcome.style.display = `block`;
+              this.game.outcome_node.style.display = `block`;
 
             }  // ends if hits floor
 
@@ -355,7 +399,7 @@ class DescenderRow {
       this.descenders.push( descender );
       let pos = get_position( descender );
       // Descender's appearance is in the middle of the column
-      descender.node.style.left = `${ curr_col_middle - pos.center_x}px`;
+      descender.node.style.left = `${ curr_col_middle - pos.half_width}px`;
       descender.node.style.top = `${row_num * 40}px`;
 
       // Move to the starting point of the next descender
@@ -367,14 +411,15 @@ class DescenderRow {
 
 
 class Descender extends Mover {
-  constructor( game, parent, type ) {
+  constructor ( game, parent, type ) {
     /**
     * @param {obj} parent The object containing this row.
     * @param {HTML Node} parent.node HTML node of the parent object.
-    * @param {number} parent.right
-    * @param {number} parent.left
+    * @param {number} parent.right X coord of the right edge of the descender container.
+    * @param {number} parent.left X coord of the left edge of the descender container.
+    * @param {number} parent.bottom Y coord of the bottom edge of the descender container.
     * @param {str} type At the moment, the size of the row's descenders.
-    * @param {str} type 'top', 'middle', or 'bottom'
+    *   'small', 'medium', or 'big'
     */
     super( `descender ${ type }`, parent );
     this.game = game;  // TODO: Pass this into super?
@@ -412,38 +457,21 @@ class Descender extends Mover {
 }  // Ends Descender{}
 
 
-const pause = function( event ){
-/** Pause the game. It drives me crazy when I can't pause a game, even
-*   though I know the loop is still running. */
-
-  // The escape key pauses the game
-  if ( event.keyCode === 27 ) {
-    if ( game.pause === true ) {
-      game.pause = false;
-    } else {
-      game.pause = true;
-    }
-  }
-};  // Ends pause()
-
-
 // ===========================================
 // ===========================================
 // ===========================================
-
-// Game state
-let game = {
-  pause: true,
-  player_status: `playing`,
-  outcome: document.querySelector(`.outcome`),
-}
 
 // Place the pieces and start the game
+
+// Game state
+let game = new Game();
+// Do this in Player?
 let screen = new Container( `.screen` );
 let player = new Player( game, screen );
+// Do this in Descenders?
 let descent_space = new Container( `.descent_space` );
 let descenders = new Descenders( game, descent_space );
-game.pause = false;
+// game.paused = false;
 
-document.body.addEventListener( `keydown`, pause );
+document.body.addEventListener( `keydown`, game.pause.bind( game ));
 
