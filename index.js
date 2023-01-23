@@ -99,16 +99,16 @@ class Mover {
   move_x ( vector ) {
     /** Move in the given direction. -1 moves left, 1 moves right. */
     if ( !this.game.paused ) {
-      let this_pos = get_position( this );
-      this.node.style.left = `${ this_pos.left + (this.x_distance * vector ) }px`;
+      let this_box = get_box( this );
+      this.node.style.left = `${ this_box.left + (this.x_distance * vector ) }px`;
     }
   }
 
   move_y ( vector ) {
     /** Move in the given direction. -1 moves up, 1 moves down. */
     if ( !this.game.paused ) {
-      let this_pos = get_position( this );
-      this.node.style.top = `${ this_pos.top + (this.y_distance * vector ) }px`;
+      let this_box = get_box( this );
+      this.node.style.top = `${ this_box.top + (this.y_distance * vector ) }px`;
     }
   }
 
@@ -117,10 +117,10 @@ class Mover {
     * 
     * @returns {bool} Whether the left edge of the mover reaches the left edge of the parent.
     */
-    let obj_pos = get_position( this );
+    let obj_box = get_box( this );
 
     // Uses the position of the mover relative to its parent.
-    if ( obj_pos.left <= 0 ) {
+    if ( obj_box.left <= 0 ) {
       return true;
     } else {
       return false;
@@ -132,10 +132,10 @@ class Mover {
     * 
     * @returns {bool} Whether the right edge of the mover hit the right edge of the parent.
     */
-    let obj_pos = get_position( this );
+    let obj_box = get_box( this );
 
     // Uses the position of the mover relative to its parent.
-    if ( obj_pos.right >= this.parent.width ) {
+    if ( obj_box.right >= this.parent.width ) {
       return true;
     } else {
       return false;
@@ -181,8 +181,8 @@ class Player extends Mover {
 
   place_center () {
     /** Put the object avatar in the horizontal center of the parent. */
-    let pos = get_position( this );
-    this.node.style.left = `${ this.parent.half_width - (pos.width/2) }px`;
+    let box = get_box( this );
+    this.node.style.left = `${ this.parent.half_width - (box.width/2) }px`;
     this.node.style.bottom = 0;
   }  // Ends player.place_center()
 
@@ -345,7 +345,7 @@ class Descenders {
     let row_width = num_cols * column_width;
 
     this.descenders = [];
-    for ( let row_num = 1; row_num <= num_rows; row_num++ ) {
+    for ( let row_num = 5; row_num <= num_rows; row_num++ ) {
       // Put each descender in the middle of its column. Include side_padding
       // to give room for horizontal movement. More dynamic in future?
       let side_padding = (this.parent.width - row_width)/2;
@@ -360,9 +360,9 @@ class Descenders {
         let descender = new Descender( this.game, this.parent, type );
 
         this.descenders.push( descender );
-        let pos = get_position( descender );
+        let box = get_box( descender );
         // Descender's appearance is in the middle of the column
-        descender.node.style.left = `${ curr_col_middle - pos.half_width}px`;
+        descender.node.style.left = `${ curr_col_middle - box.half_width}px`;
         descender.node.style.top = `${row_num * 40}px`;
 
         // Move to the starting point of the next descender
@@ -408,10 +408,10 @@ class Descender extends Mover {
     * @returns {bool} Whether the bottom of the mover has reached the bottom of the parent.
     */
 
-    let obj_pos = get_position( this );
+    let obj_box = get_box( this );
 
     // Uses the position of the mover relative to its parent.
-    if ( obj_pos.bottom >= this.parent.height ) {
+    if ( obj_box.bottom >= this.parent.height ) {
       return true;
     } else {
       return false;
@@ -426,7 +426,7 @@ class Descender extends Mover {
 // General Helpers
 // ===========================================
 
-const get_position = function ( obj ) {
+const get_box = function ( obj ) {
   /** Get the relative position and dimensions of an
   *   object's `.node` as floats.
   * 
@@ -439,14 +439,14 @@ const get_position = function ( obj ) {
   * @param {object} obj
   * @param {HTML Node} obj.node
   * 
-  * @returns {object} pos The relative position and dimensions of the object's node.
-  * @returns {float} pos.left The position of the object's left edge relative to the parent node. Left edge = 0.
-  * @returns {float} pos.right The position of the object's right edge relative to the parent node. Left edge = 0.
-  * @returns {float} pos.top The position of the object's top edge relative to the parent node. Top edge = 0.
-  * @returns {float} pos.bottom The position of the object's bottom edge relative to the parent node. Top edge = 0.
-  * @returns {float} pos.width The width of the node.
-  * @returns {float} pos.height The height of the node.
-  * @returns {float} pos.half_width The width of half the node.
+  * @returns {object} box The relative position and dimensions of the object's node.
+  * @returns {float} box.left The position of the object's left edge relative to the parent node. Left edge = 0.
+  * @returns {float} box.right The position of the object's right edge relative to the parent node. Left edge = 0.
+  * @returns {float} box.top The position of the object's top edge relative to the parent node. Top edge = 0.
+  * @returns {float} box.bottom The position of the object's bottom edge relative to the parent node. Top edge = 0.
+  * @returns {float} box.width The width of the node.
+  * @returns {float} box.height The height of the node.
+  * @returns {float} box.half_width The width of half the node.
   */
 
   return {
@@ -459,12 +459,12 @@ const get_position = function ( obj ) {
     height: obj.node.offsetHeight,
     half_width: obj.node.offsetWidth/2,
   }
-};  // Ends get_position()
+};  // Ends get_box()
 
 const have_collided = function ( obj1, obj2 ) {
   /** Returns true if two objects are colliding, false if no. */
-  let pos1 = get_position( obj1 );
-  let pos2 = get_position( obj2 );
+  let box1 = get_box( obj1 );
+  let box2 = get_box( obj2 );
 
   // TODO: Check for collision...
 };  // Ends have_collided()
