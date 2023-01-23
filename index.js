@@ -42,6 +42,25 @@ class Game {
     }
   }  // Ends game.pause()
 
+  win () {
+    this.player_status = `won`;
+    this.outcome_node.innerText = `Congrats!`;
+  }
+
+  lose () {
+    this.player_status = `lost`;
+    this.outcome_node.innerText = `Next time could be different`;
+  }
+
+  end () {
+    // Stop current loops
+    this.over = true;
+    this.outcome_node.style.display = `block`;
+
+    // Pause player movement ;)
+    this.paused = true;
+  }
+
 }  // Ends Game{}
 
 
@@ -79,7 +98,6 @@ class Mover {
 
   move_x ( vector ) {
     /** Move in the given direction. -1 moves left, 1 moves right. */
-    // TODO: Change vector to an argument instead
     if ( !this.game.paused ) {
       let this_pos = get_position( this );
       this.node.style.left = `${ this_pos.left + (this.x_distance * vector ) }px`;
@@ -88,7 +106,6 @@ class Mover {
 
   move_y ( vector ) {
     /** Move in the given direction. -1 moves up, 1 moves down. */
-    // TODO: Change vector to an argument instead
     if ( !this.game.paused ) {
       let this_pos = get_position( this );
       this.node.style.top = `${ this_pos.top + (this.y_distance * vector ) }px`;
@@ -134,10 +151,10 @@ class Player extends Mover {
     /**
     * @param {HTML Node} parent Instance of parent that contains the player
     * @param {obj} game Game state. Messy to have in here? Helps later fun?
-    * @param {bool} game.paused Whether to allow progress or not. (TODO)
+    * @param {bool} game.paused Whether to allow progress or not.
     */
     super( `player`, parent );
-    this.game = game;  // TODO: Pass this into super?
+    this.game = game;  // Q: Pass this into super?
 
     this.place_center();
 
@@ -146,7 +163,7 @@ class Player extends Mover {
     this.right_disabled = false;
     // Distance divides exactly in parent so the avatar stops right
     // at the wall of the parent.
-    // This feels a bit big, leaving gaps, but allows the speed of
+    // This distance feels a bit big, leaving gaps, but allows the speed of
     // travel I desire considering we don't have control of the rate
     // of the loop movement because we're using the `keydown` event.
     this.x_distance = 20;
@@ -184,8 +201,8 @@ class Player extends Mover {
     }  // ends if not left_disabled
 
     // Make sure player can now move right again
-    // TODO: Watch out this doesn't get enabled when pausing game, allowing
-    // the player to move right after pausing.
+    // Combining this with pausing allows the player to escape the screen.
+    // Feature, not a bug. Future asteroids? ;)
     this.right_disabled = false;
   }  // Ends player.move_left()
 
@@ -204,13 +221,13 @@ class Player extends Mover {
     }  // ends if not right_disabled
 
     // Make sure player can now move left again
-    // TODO: Watch out this doesn't get enabled when pausing game, allowing
-    // the player to move right after pausing.
+    // Combining this with pausing allows the player to escape the screen.
+    // Feature, not a bug. Future asteroids? ;)
     this.left_disabled = false;
 
   }  // Ends player.move_right()
 
-};  // Ends Player{}
+}  // Ends Player{}
 
 
 class Descenders {
@@ -232,10 +249,10 @@ class Descenders {
 
     // Make all children
     this.rows = [
-      new DescenderRow( game, descent_space, `small`, 1 ),
-      new DescenderRow( game, descent_space, `medium`, 2 ),
-      new DescenderRow( game, descent_space, `medium`, 3 ),
-      new DescenderRow( game, descent_space, `big`, 4 ),
+      // new DescenderRow( game, descent_space, `small`, 1 ),
+      // new DescenderRow( game, descent_space, `medium`, 2 ),
+      // new DescenderRow( game, descent_space, `medium`, 3 ),
+      // new DescenderRow( game, descent_space, `big`, 4 ),
       new DescenderRow( game, descent_space, `big`, 5 ),
     ];
 
@@ -254,76 +271,73 @@ class Descenders {
     // If we moved one descender every "frame", they would naturally speed up,
     // but right now we're moving them all at once. Either figure out frames
     // or do the Math.
-    let all_stop = this.game.player_status === `won`
-      || this.game.player_status === `lost`;
 
-    // if (all_stop) {return;}
+    // Feels very disconnected and too closely coupled
+    if ( this.game.over ) { return; }
 
-    if ( !all_stop ) {
+    // If the game isn't over, continue looping and moving
+    let did_hit_wall = false;
+    let descender_count = 0;
 
-      let did_hit_wall = false;
-      let descender_count = 0;
+    for ( let row of this.rows ) {
+      for ( let descender of row.descenders ) {
+        // Number of descenders will affect speed of travel
+        descender_count += 1;
 
+        // Hmm, this is getting a bit messy just for potential future fun...
+        descender.move_x( this.x_vector );
+
+        // Prepare to change direction if needed
+        if ( descender.hits_parent_left() ) {
+          did_hit_wall = true;
+        }
+        if ( descender.hits_parent_right() ) {
+          did_hit_wall = true;
+        }
+      }  // ends for each descender in row
+    }  // ends for each row
+
+    // After all the descenders have moved, if at least one of them hit a wall...
+    if ( did_hit_wall ) {
+      // All should move in the opposite direction in next loop
+      this.x_vector *= -1;
+
+      let did_hit_floor = false;
+      // All should move down
       for ( let row of this.rows ) {
         for ( let descender of row.descenders ) {
-          // Number of descenders will affect speed of travel
-          descender_count += 1;
+          // Move down
+          descender.move_y( 1 );
 
-          // Hmm, this is getting a bit messy just for potential future fun...
-          descender.move_x( this.x_vector );
-
-          // Prepare to change direction if needed
-          if ( descender.hits_parent_left() ) {
-            did_hit_wall = true;
+          // Check if they any hit the ground yet
+          if ( descender.hits_parent_floor() ) {
+            did_hit_floor = true;
           }
-          if ( descender.hits_parent_right() ) {
-            did_hit_wall = true;
-          }
-        }  // end for each descender in row
-      }  // end for each row
 
-      // After all the descenders have moved, if at least one of them hit a wall...
-      if ( did_hit_wall ) {
-        // All should move in the opposite direction in next loop
-        this.x_vector *= -1;
-        // All should move down
-        for ( let row of this.rows ) {
-          for ( let descender of row.descenders ) {
-            // Move down
-            descender.move_y( 1 );
+        }  // ends for each descender in row
+      }  // ends for each row
 
-            // TODO: Need to wait to do this until after all have moved down
-            // Check if they any hit the ground yet
-            if ( descender.hits_parent_floor() ) {
-              if ( descender_count === 50 ) {  // hard coded magic number for now
-                this.game.player_status = `won`;
-              } else {
-                this.game.player_status = `lost`;
-              }
+      // If any did hit the ground, the game is over
+      if ( did_hit_floor ) {
+        // This relationship with `game` seems too coupled, but not
+        // yet sure what to do about it
+        if ( descender_count === 50 ) {  // hard coded magic number for now
+          this.game.win();
+        } else {
+          this.game.lose();
+        }
 
-              this.game.pause();
+        this.game.end();
+      }  // ends if did_hit_floor
+    }  // ends if did_hit_wall
 
-              // Don't like this being burried here
-              let status_node = this.game.outcome_node.querySelector(`.status`);
-              // Don't love using the status as the literal text
-              status_node.innerText = this.game.player_status;
-              this.game.outcome_node.style.display = `block`;
-
-            }  // ends if hits floor
-
-          }  // ends for each descender in row
-        }  // ends for each row
-      }  // ends if did_hit_wall
-
-      // Enemies move faster the fewer there are
-      // Maximum speed (6ms) still allows the user to catch up if they
-      // have a long enough time to do it. 2ms more for each descender after the first (When
-      // there is only 1 descender, it'll be fastest. Haven't handled 0 descenders yet.)
-      this.wait = ((descender_count - 1) * 2) + 6;  // hard coded magic number
-      // Loop again
-      setTimeout( this.move_all.bind(this), this.wait );
-
-    }  // ends if not all_stop
+    // Enemies move faster the fewer there are.
+    // Maximum speed (6ms) still allows the user to catch up if they
+    // have a long enough time to do it. 2ms more for each descender after the first (When
+    // there is only 1 descender, it'll be fastest. Haven't handled 0 descenders yet.)
+    this.wait = ((descender_count - 1) * 2) + 6;  // hard coded magic number
+    // Loop again
+    setTimeout( this.move_all.bind(this), this.wait );
 
   }  // Ends Descenders.move_all()
 
@@ -399,7 +413,7 @@ class Descender extends Mover {
     // // For testing - speed up to get to end
     // this.x_distance = 50;
     // this.y_distance = 50;
-  }  // end descender.constructor()
+  }  // ends descender.constructor()
 
   hits_parent_floor () {
     /** Return whether or not the mover's node has reached the bottom edge of the parent.

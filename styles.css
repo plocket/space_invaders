@@ -59,9 +59,12 @@ body {
 .outcome {
   display: none;
   position: absolute;
-  left: 50%;
-  transform: translate(-50%, 0);
-  font-size: 5em;
+  /*left: 50%;*/
+  /*transform: translate(-50%, 0);*/
+  width: 100%;
+  top: 40px;
+  text-align: center;
+  font-size: 3em;
   color: white;
   font-family: Verdana, sans-serif;
 }
