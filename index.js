@@ -430,9 +430,6 @@ const get_box = function ( obj ) {
   /** Get the relative position and dimensions of an
   *   object's `.node` as floats.
   * 
-  * TODO: "Position" isn't a great word for stuff in here, but I don't know
-  *   a better one? "box"? "rectangle"?
-  * 
   * There's something that feels better having it out here
   *   as opposed to as a method of an instance.
   * 
