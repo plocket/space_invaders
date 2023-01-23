@@ -154,7 +154,7 @@ class Player extends Mover {
     * @param {bool} game.paused Whether to allow progress or not.
     */
     super( `player`, parent );
-    this.game = game;  // Q: Pass this into super?
+    this.game = game;  // For movement. I don't love that, but...?
 
     this.place_center();
 
@@ -237,7 +237,7 @@ class Descenders {
   * Handle movement in here because the whole group moves as a unit.
   */
 
-  constructor ( game ) {
+  constructor ( game, parent ) {
     /**
     * @param {obj} game Game state. Messy to have in here? Helps later fun?
     * @param {str} game.player_status Whether the player has won/lost/etc.
@@ -245,16 +245,11 @@ class Descenders {
     */
     // Just use global `game`?
     this.game = game;
+    this.parent = parent;
     this.x_vector = -1  // left first
 
-    // Make all children
-    this.rows = [
-      // new DescenderRow( game, descent_space, `small`, 1 ),
-      // new DescenderRow( game, descent_space, `medium`, 2 ),
-      // new DescenderRow( game, descent_space, `medium`, 3 ),
-      // new DescenderRow( game, descent_space, `big`, 4 ),
-      new DescenderRow( game, descent_space, `big`, 5 ),
-    ];
+    // Make and place all children
+    this.place_all();
 
     // Start moving
     this.hit_floor = false;
@@ -277,51 +272,48 @@ class Descenders {
 
     // If the game isn't over, continue looping and moving
     let did_hit_wall = false;
-    let descender_count = 0;
+    let current_descender_count = 0;
 
-    for ( let row of this.rows ) {
-      for ( let descender of row.descenders ) {
-        // Number of descenders will affect speed of travel
-        descender_count += 1;
+    // Move all of the descenders horizontally
+    for ( let descender of this.descenders ) {
+      // Number of descenders will affect speed of travel
+      current_descender_count += 1;
 
-        // Hmm, this is getting a bit messy just for potential future fun...
-        descender.move_x( this.x_vector );
+      // Hmm, this is getting a bit messy just for potential future fun...
+      descender.move_x( this.x_vector );
 
-        // Prepare to change direction if needed
-        if ( descender.hits_parent_left() ) {
-          did_hit_wall = true;
-        }
-        if ( descender.hits_parent_right() ) {
-          did_hit_wall = true;
-        }
-      }  // ends for each descender in row
-    }  // ends for each row
+      // Prepare to change direction if needed
+      if ( descender.hits_parent_left() ) {
+        did_hit_wall = true;
+      }
+      if ( descender.hits_parent_right() ) {
+        did_hit_wall = true;
+      }
+    }  // ends for each descender
 
     // After all the descenders have moved, if at least one of them hit a wall...
     if ( did_hit_wall ) {
       // All should move in the opposite direction in next loop
       this.x_vector *= -1;
 
-      let did_hit_floor = false;
-      // All should move down
-      for ( let row of this.rows ) {
-        for ( let descender of row.descenders ) {
-          // Move down
-          descender.move_y( 1 );
+      let did_hit_floor = false;  // game over condition
 
-          // Check if they any hit the ground yet
-          if ( descender.hits_parent_floor() ) {
-            did_hit_floor = true;
-          }
+      // And all should move down
+      for ( let descender of this.descenders ) {
+        // Move down
+        descender.move_y( 1 );
 
-        }  // ends for each descender in row
-      }  // ends for each row
+        // Check if they any hit the ground yet
+        if ( descender.hits_parent_floor() ) {
+          did_hit_floor = true;
+        }
+      }  // ends for each descender
 
       // If any did hit the ground, the game is over
       if ( did_hit_floor ) {
         // This relationship with `game` seems too coupled, but not
         // yet sure what to do about it
-        if ( descender_count === 50 ) {  // hard coded magic number for now
+        if ( current_descender_count === this.num_starting_descenders ) {
           this.game.win();
         } else {
           this.game.lose();
@@ -335,57 +327,52 @@ class Descenders {
     // Maximum speed (6ms) still allows the user to catch up if they
     // have a long enough time to do it. 2ms more for each descender after the first (When
     // there is only 1 descender, it'll be fastest. Haven't handled 0 descenders yet.)
-    this.wait = ((descender_count - 1) * 2) + 6;  // hard coded magic number
+    this.wait = ((current_descender_count - 1) * 2) + 6;  // hard coded magic number
     // Loop again
     setTimeout( this.move_all.bind(this), this.wait );
 
   }  // Ends Descenders.move_all()
 
-}  // Ends Descenders{}
+  place_all () {
+    /** Place all descenders on the their screen. */
 
-
-class DescenderRow {
-  /** A visual row of descenders. Handles their initial placement and contains them.
-  *    TODO: Explore putting this functionality elsewhere. This may
-  *    be a spurious class.
-  */
-  constructor ( game, parent, type, row_num ) {
-    /**
-    * @param {obj} parent The object containing this row.
-    * @param {HTML Node} parent.node HTML node of the parent object.
-    * @param {number} parent.width
-    * @param {number} parent.left
-    * @param {str} type At the moment, the size of the row's descenders.
-    * @param {int} row_num The vertical position of the row relative to other rows.
-    *   Top is 1.
-    */
     // Keep everything in multiples of 2? With Math.
     let num_cols = 10;  // Could pass this as an argument instead.
+    let num_rows = 5;
+    this.num_starting_descenders = num_cols * num_rows;
+
     let column_width = 50;
     let row_width = num_cols * column_width;
 
-    // Put each descender in the middle of its column. Include side_padding
-    // to give room for horizontal movement. More dynamic in future?
-    let side_padding = (parent.width - row_width)/2;
-    let start = parent.width - row_width - side_padding;
-    let curr_col_middle = start + (column_width/2);
-
     this.descenders = [];
-    for ( let des_i = 0; des_i < num_cols; des_i++ ) {
+    for ( let row_num = 1; row_num <= num_rows; row_num++ ) {
+      // Put each descender in the middle of its column. Include side_padding
+      // to give room for horizontal movement. More dynamic in future?
+      let side_padding = (this.parent.width - row_width)/2;
+      let start = this.parent.width - row_width - side_padding;
+      let curr_col_middle = start + (column_width/2);
 
-      let descender = new Descender( game, parent, type, this );
-      this.descenders.push( descender );
-      let pos = get_position( descender );
-      // Descender's appearance is in the middle of the column
-      descender.node.style.left = `${ curr_col_middle - pos.half_width}px`;
-      descender.node.style.top = `${row_num * 40}px`;
+      for ( let des_i = 0; des_i < num_cols; des_i++ ) {
 
-      // Move to the starting point of the next descender
-      curr_col_middle += column_width;
-    }  // ends place descenders
+        let type = `small`;
+        if ( row_num > 1 ) { type = `medium`; }
+        if ( row_num > 4 ) { type = `big`; }
+        let descender = new Descender( this.game, this.parent, type );
 
-  }  // ends row.constructor()
-}  // Ends DescenderRow{}
+        this.descenders.push( descender );
+        let pos = get_position( descender );
+        // Descender's appearance is in the middle of the column
+        descender.node.style.left = `${ curr_col_middle - pos.half_width}px`;
+        descender.node.style.top = `${row_num * 40}px`;
+
+        // Move to the starting point of the next descender
+        curr_col_middle += column_width;
+      }  // ends place descenders
+    }  // ends for every row
+
+  }  // Ends descenders.place_all()
+
+}  // Ends Descenders{}
 
 
 class Descender extends Mover {
@@ -400,7 +387,7 @@ class Descender extends Mover {
     *   'small', 'medium', or 'big'
     */
     super( `descender ${ type }`, parent );
-    this.game = game;  // TODO: Pass this into super?
+    this.game = game;  // For movement. I don't love that, but...?
 
     // Travel direction and distance in here to allow messing around in future.
     // Maybe not worth the maintanance cost.
